@@ -1,17 +1,16 @@
 import streamlit as st
+import google.generativeai as genai
 
 # Page Configuration
 st.set_page_config(page_title="AI Content Generator", layout="centered", initial_sidebar_state="expanded")
 
+# API Configuration
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+model = genai.GenerativeModel('gemini-pro')
+
 # Initialize Session State
 if 'history' not in st.session_state:
     st.session_state['history'] = []
-
-# Function to reset form
-def reset_form():
-    st.session_state['user_input'] = ""
-    st.session_state['url_input'] = ""
-    st.session_state['uploaded_file'] = None
 
 # Sidebar History
 with st.sidebar:
@@ -27,7 +26,7 @@ st.title("✨ AI Content Generator")
 col_top1, col_top2 = st.columns([4, 1])
 with col_top2:
     if st.button("🔄 New Content"):
-        st.rerun() # Refresh to clear everything
+        st.rerun()
 
 mode = st.selectbox("Select Role:", ["Student", "Creator", "Business Brand"], key="role")
 user_input = st.text_area("What's the update today?", key="user_input")
@@ -45,13 +44,16 @@ if st.button("✨ Generate Content"):
     if not user_input and not url_input:
         st.warning("Please provide input or a URL!")
     else:
-        # Mock result
-        result = f"Here is your AI generated content for {mode}..."
-        st.session_state['history'].append({"result": result})
-        
-        st.success("Draft Generated!")
-        st.code(result, language='text')
-        
-        col1, col2 = st.columns(2)
-        with col1: st.button("👍 Good")
-        with col2: st.button("👎 Improve")
+        with st.spinner("Generating..."):
+            prompt = f"Create a post for {mode} in {selected_lang} for {platforms}. Audience: {selected_audience}. Context: {user_input}. Reference URL: {url_input}"
+            response = model.generate_content(prompt)
+            result = response.text
+            
+            st.session_state['history'].append({"result": result})
+            
+            st.success("Draft Generated!")
+            st.write(result)
+            
+            col1, col2 = st.columns(2)
+            with col1: st.button("👍 Good")
+            with col2: st.button("👎 Improve")
